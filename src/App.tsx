@@ -1,14 +1,30 @@
 import React, { useState } from 'react';
 import { Router, Link } from "@reach/router";
+
 import CreateShout from './CreateShout';
 import SelectShout from './SelectShout';
 import Settings from './Settings';
 import { fetchLocalUser, ShoutUser, saveLocalUser, fetchShoutSummaries, saveShoutSummaries, Shout, saveShout, deleteShout } from './db';
 import ShoutLoader from './ShoutLoader';
+import Join from './Join';
+import { usePeer } from './peer';
+
+function getSeeds(location: Location): string[] {
+  const search = new URLSearchParams(location.search);
+  const peerParam = search.get("peers");
+
+  if(peerParam === null) {
+    return [];
+  }
+
+  return peerParam.split(",").map(s => s.trim());
+}
 
 function App() {
   const [localUser, setLocalUser] = useState(fetchLocalUser());
   const [shoutSummaries, setShoutSummaries] = useState(fetchShoutSummaries());
+
+  const { peerState } = usePeer(localUser.id, getSeeds(window.location));
 
   return <div className='container'>
     <div className='row'>
@@ -27,6 +43,7 @@ function App() {
         path='/'
         localUser={localUser}
         shouts={shoutSummaries}
+        connected={peerState.connectedToBackend}
         deleteShout={(id: string) => {
           const updated = shoutSummaries.filter(shout => shout.id !== id);
           
@@ -51,6 +68,10 @@ function App() {
       />
       <ShoutLoader
         path='/shout/:id'
+      />
+      <Join
+        path='/join'
+        connectedToBackend={peerState.connectedToBackend}
       />
       <Settings
         path='/settings'

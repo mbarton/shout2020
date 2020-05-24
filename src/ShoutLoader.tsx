@@ -1,6 +1,7 @@
 import React from 'react';
 import { RouteComponentProps } from '@reach/router';
 import { fetchShoutById } from './db';
+import ShoutUI from './ShoutUI';
 
 type Props = RouteComponentProps & {
     id?: string
@@ -17,5 +18,5 @@ export default function ShoutLoader(props: Props) {
         return <div>4 (to the) 04 - that shout does not exist!</div>;
     }
 
-    return <h1>{props.id}</h1>;
+    return <ShoutUI shout={shout} {...props} />;
 }
