@@ -4,7 +4,7 @@ import { Router, Link } from "@reach/router";
 import CreateShout from './CreateShout';
 import SelectShout from './SelectShout';
 import Settings from './Settings';
-import { fetchLocalUser, ShoutUser, saveLocalUser, fetchShoutSummaries, saveShoutSummaries, Shout, saveShout, deleteShout, fetchStartupData } from './db';
+import { ShoutUser, saveLocalUser, fetchShoutSummaries, saveShoutSummaries, Shout, saveShout, deleteShout, fetchStartupData } from './db';
 import ShoutLoader from './ShoutLoader';
 import Join from './Join';
 import { usePeer } from './peer';
@@ -64,11 +64,12 @@ function App() {
         path='/join'
         connectedToBackend={peerState.connectedToBackend}
         peerIds={startupData.seeds}
-        connectedPeerIds={peerState.connectedPeers}
+        connectedPeerIds={peerState.connectedPeers.map(({ id }) => id)}
       />
       <Settings
         path='/settings'
         localUser={localUser}
+        connectedPeers={peerState.connectedPeers}
         setLocalUser={(user: ShoutUser) => {
           saveLocalUser(user);
           setLocalUser(user);
