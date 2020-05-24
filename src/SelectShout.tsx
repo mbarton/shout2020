@@ -1,7 +1,7 @@
 import React from 'react';
 import { RouteComponentProps, Link } from '@reach/router';
 import sortBy from 'lodash.sortby';
-import { ShoutSummary, ShoutUser } from './db';
+import { ShoutSummary, ShoutUser, fetchStartupData } from './db';
 import { ShareButton } from './ShareButton';
 
 type Props = RouteComponentProps & {
@@ -37,7 +37,7 @@ export default function SelectShout(props: Props) {
                     </td>
                     <td>
                         <div className='float-right'>
-                            <ShareButton id={id} peerId={props.localUser.id} connected={props.connected} />
+                            <ShareButton id={id} peerId={fetchStartupData().sessionId} connected={props.connected} />
                             <button className="button" onClick={() => props.deleteShout(id)}>Delete</button>
                         </div>
                     </td>

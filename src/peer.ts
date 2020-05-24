@@ -1,5 +1,6 @@
 import Peer from 'peerjs';
 import { useState, useEffect } from 'react';
+import { ShoutUser, fetchStartupData } from './db';
 
 type PeerState = {
     connectedToBackend: boolean,
@@ -11,14 +12,31 @@ type InternalPeerState = {
     connections: Peer.DataConnection[]
 }
 
-export function usePeer(id: string, seeds: string[]): { peerState: PeerState, connectToPeer: (id: string) => void } {
+const startupData = fetchStartupData();
+
+export function usePeer(): PeerState {
     const [peerState, setPeerState] = useState<InternalPeerState>({
         connectedToBackend: false,
         connections: []
     });
 
+    function onNewConnection(connection: Peer.DataConnection) {
+        console.log(connection);
+
+        connection.on('open', () => {
+            setPeerState((peerState: InternalPeerState) => {
+                const connections = [...peerState.connections, connection];
+                return { ...peerState, connections }
+            });
+        });
+
+        connection.on('error', err => {
+            console.error(err);
+        });
+    }
+
     useEffect(() => {
-        const peer = new Peer(id, {
+        const peer = new Peer(startupData.sessionId, {
             host: 'penguin.linux.test',
             port: 9000
         });
@@ -29,26 +47,18 @@ export function usePeer(id: string, seeds: string[]): { peerState: PeerState, co
             });
         });
 
-        peer.on('connection', (connection) => {
-            setPeerState((peerState: InternalPeerState) => {
-                const connections = [...peerState.connections, connection];
-                return { ...peerState, connections }
-            });
+        peer.on('connection', onNewConnection);
+
+        startupData.seeds.forEach(seedId => {
+            const conn = peer.connect(seedId);
+            onNewConnection(conn);
         });
-
-        peer.on('error', err => {
-            console.error(err);
-        });
-    }, [id]);
-
-    function connectToPeer(id: string) {
-
-    }
+    }, []);
 
     const publicPeerState: PeerState = {
         connectedToBackend: peerState.connectedToBackend,
         connectedPeers: peerState.connections.map(({ peer }) => peer)
     };
 
-    return { peerState: publicPeerState, connectToPeer };
+    return publicPeerState;
 }

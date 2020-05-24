@@ -2,14 +2,19 @@ import React from "react";
 import { RouteComponentProps } from "@reach/router";
 
 type Props = RouteComponentProps & {
-    connectedToBackend: boolean
+    connectedToBackend: boolean,
+    peerIds: string[],
+    connectedPeerIds: string[]
 }
 
-export default function Join({ connectedToBackend }: Props) {
+export default function Join({ connectedToBackend, peerIds, connectedPeerIds }: Props) {
+    console.log({ peerIds, connectedPeerIds });
+    const connectedToPeers = peerIds.some(peerId => connectedPeerIds.includes(peerId));
+
     return <React.Fragment>
         <dl>
-            <dt>Connecting to Shout backend {connectedToBackend ? '✅' : '🔄'}</dt>
-            {/* <dt>Connecting to Shout session {hackConnectedRemotePeerId ? '✅' : '🔄'}</dt> */}
+            <dt>Connecting to backend {connectedToBackend ? '✅' : '🔄'}</dt>
+            <dt>Connecting to peers {connectedToPeers ? '✅' : '🔄'}</dt>
         </dl>
     </React.Fragment>;
 }

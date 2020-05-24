@@ -3,7 +3,14 @@ import { uniqueNamesGenerator, adjectives, animals, colors, countries } from 'un
 
 export type ShoutUser = {
     id: string,
+    iteration: number,
     name: string
+}
+
+export type StartupData = {
+    localUser: ShoutUser,
+    sessionId: string,
+    seeds: string[]
 }
 
 export type ShoutSummary = {
@@ -45,6 +52,7 @@ export function fetchLocalUser(): ShoutUser {
     if(json === null) {
         const user = {
             id: uuidv4(),
+            iteration: 0,
             name: generateUsername()
         };
 
@@ -53,6 +61,33 @@ export function fetchLocalUser(): ShoutUser {
     }
 
     return JSON.parse(json).user;
+}
+
+let startUpDataCache: StartupData | undefined = undefined;
+
+export function fetchStartupData(): StartupData {
+    if(startUpDataCache) {
+        return startUpDataCache;
+    }
+
+    const userFromDB = fetchLocalUser();
+
+    // Increase the iteration. This allows the same user to have multiple tabs open
+    const localUser = { ...userFromDB, iteration: userFromDB.iteration + 1 };
+    saveLocalUser(localUser);
+
+    // eslint-disable-next-line no-restricted-globals
+    const search = new URLSearchParams(location.search);
+    const peerParam = search.get("seed");
+
+    const seeds = peerParam === null ? [] : peerParam.split(",").map(s => s.trim());
+    
+    const sessionId = `${localUser.id}_${localUser.iteration}`;
+
+    const ret = { localUser, seeds, sessionId };
+    startUpDataCache = ret;
+    
+    return ret;
 }
 
 export function saveShoutSummaries(summaries: ShoutSummary[]) {
