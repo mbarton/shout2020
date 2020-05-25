@@ -15,7 +15,7 @@ function App() {
   const [localUser, setLocalUser] = useState(startupData.localUser);
   const [shoutSummaries, setShoutSummaries] = useState(fetchShoutSummaries());
 
-  const peerState = usePeer();
+  const peerState = usePeer(startupData);
 
   return <div className='container'>
     <div className='row'>
@@ -35,6 +35,7 @@ function App() {
         localUser={localUser}
         shouts={shoutSummaries}
         connected={peerState.connectedToBackend}
+        sessionId={startupData.sessionId}
         deleteShout={(id: string) => {
           const updated = shoutSummaries.filter(shout => shout.id !== id);
           

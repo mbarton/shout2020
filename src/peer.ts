@@ -1,6 +1,6 @@
 import Peer from 'peerjs';
 import { useState, useEffect } from 'react';
-import { fetchStartupData } from './db';
+import { StartupData } from './db';
 
 export type PeerConnection = {
     id: string,
@@ -8,6 +8,7 @@ export type PeerConnection = {
 }
 
 export type PeerState = {
+    sessionId: string,
     connectedToBackend: boolean,
     connectedPeers: PeerConnection[]
 }
@@ -23,9 +24,7 @@ type InternalPeerState = {
     connections: InternalPeerConnection[]
 }
 
-const startupData = fetchStartupData();
-
-export function usePeer(): PeerState {
+export function usePeer(startupData: StartupData): PeerState {
     const [peerState, setPeerState] = useState<InternalPeerState>({
         connectedToBackend: false,
         connections: []
@@ -98,7 +97,8 @@ export function usePeer(): PeerState {
     useEffect(() => {
         const peer = new Peer(startupData.sessionId, {
             host: 'penguin.linux.test',
-            port: 9000
+            port: 9000,
+            key: 'shout'
         });
 
         peer.on('open', () => {
@@ -118,6 +118,7 @@ export function usePeer(): PeerState {
     }, []);
 
     const publicPeerState: PeerState = {
+        sessionId: startupData.sessionId,
         connectedToBackend: peerState.connectedToBackend,
         connectedPeers: peerState.connections.map(({ connection, lastHeartbeatReceived }) => {
             return {
