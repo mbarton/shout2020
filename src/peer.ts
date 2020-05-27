@@ -1,6 +1,6 @@
 import Peer from 'peerjs';
-import { useState, useEffect, useReducer } from 'react';
-import { ShoutState, Identity } from './data/state';
+import { useEffect, useReducer } from 'react';
+import { Identity } from './data/state';
 import * as Users from './data/users';
 
 
@@ -16,15 +16,11 @@ export type PeerConnection = {
 }
 
 export type PeerState = {
+    sessionId: string,
     connectedToBackend: boolean,
     connections: { [key: string]: PeerConnection },
     error?: any
 }
-
-const baseState: PeerState = {
-    connectedToBackend: false,
-    connections: {}
-};
 
 type PeerAction =
     { type: 'set_connected_to_backend', connectedToBackend: boolean } |
@@ -61,7 +57,7 @@ function reducer(state: PeerState, action: PeerAction): PeerState {
                 clearInterval(heartbeatIntervalHandle);
             }
 
-            const after = { ... state.connections };
+            const after = { ...state.connections };
             delete after[action.connectionId];
 
             return { ...state, connections: after };
@@ -141,14 +137,18 @@ function bootUp(sessionId: string, seeds: string[], dispatch: React.Dispatch<Pee
 
 export function usePeer(identity: Identity, users: Users.State): PeerState {
     const sessionId = `${identity.id}_${identity.iteration}`;
-    const initialPeers = [...Object.keys(users)];
+    const initialPeers = [...Object.keys(users)].filter(id => id !== identity.id);
 
-    const [state, dispatch] = useReducer(reducer, baseState);
+    const [state, dispatch] = useReducer(reducer, {
+        sessionId,
+        connectedToBackend: false,
+        connections: {}
+    });
 
     useEffect(() => {
         console.log({ sessionId, initialPeers });
-        // bootUp(sessionId, initialPeers, dispatch);
-    }, [sessionId, initialPeers]);
+        bootUp(sessionId, initialPeers, dispatch);
+    }, []);
 
     // TODO MRB: react to users being added and removed in appState
 

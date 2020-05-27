@@ -4,11 +4,13 @@ import sortBy from 'lodash.sortby';
 import * as Manifest from './data/manifest';
 import * as Users from './data/users';
 import { ShareButton } from './ShareButton';
+import { PeerState } from './peer';
 
 type Props = RouteComponentProps & {
+    localUserId: string,
+    peer: PeerState,
     manifest: Manifest.State,
-    users: Users.State,
-    localUserId: string
+    users: Users.State
 }
 
 function getShoutDisplayName(itemId: string, item: Manifest.Item, localUserId: string, users: Users.State): string {
@@ -50,10 +52,10 @@ export default function SelectShout(props: Props) {
                         {new Date(item.createdAt.value).toLocaleString()}
                     </td>
                     <td>
-                        {/* <div className='float-right'>
-                            <ShareButton id={shout.id} peerId={props.sessionId} connected={props.connected} />
-                            <button className="button" onClick={() => props.deleteShout(shout.id)}>Delete</button>
-                        </div> */}
+                        <div className='float-right'>
+                            <ShareButton id={id} peerId={props.peer.sessionId} connected={props.peer.connectedToBackend} />
+                            {/* <button className="button" onClick={() => props.deleteShout(shout.id)}>Delete</button> */}
+                        </div>
                     </td>
                 </tr>;
             })}

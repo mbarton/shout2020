@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Router, Link } from "@reach/router";
 
 import CreateShout from './CreateShout';
@@ -31,9 +31,10 @@ function App() {
     <Router>
       <SelectShout
         path='/'
+        localUserId={identity.id}
         manifest={manifest}
         users={users}
-        localUserId={identity.id}
+        peer={peer}
       />
       <CreateShout
         path='/new'
