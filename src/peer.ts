@@ -30,6 +30,7 @@ type PeerAction =
     { type: 'set_connected_to_backend', connectedToBackend: boolean } |
     { type: 'set_connection_state', connection: PeerConnection } |
     { type: 'update_heartbeat', connectionId: string } |
+    { type: 'remove_connection', connectionId: string } |
     { type: 'set_error', error: any };
 
 function reducer(state: PeerState, action: PeerAction): PeerState {
@@ -53,6 +54,17 @@ function reducer(state: PeerState, action: PeerAction): PeerState {
             
             return { ...state, connections: after };
         }
+
+        case 'remove_connection':
+            const { heartbeatIntervalHandle } = state.connections[action.connectionId];
+            if(heartbeatIntervalHandle) {
+                clearInterval(heartbeatIntervalHandle);
+            }
+
+            const after = { ... state.connections };
+            delete after[action.connectionId];
+
+            return { ...state, connections: after };
 
         case 'set_error':
             return { ...state, error: action.error };
@@ -81,6 +93,8 @@ function bootUpConnection(connection: Peer.DataConnection, dispatch: React.Dispa
 
     connection.on('close', () => {
         console.log(`Disconnected from peer ${connection.peer}`);
+
+        dispatch({ type: 'remove_connection', connectionId: connection.peer });
     });
 
     connection.on('error', (error) => {
@@ -132,7 +146,8 @@ export function usePeer(identity: Identity, users: Users.State): PeerState {
     const [state, dispatch] = useReducer(reducer, baseState);
 
     useEffect(() => {
-        bootUp(sessionId, initialPeers, dispatch);
+        console.log({ sessionId, initialPeers });
+        // bootUp(sessionId, initialPeers, dispatch);
     }, [sessionId, initialPeers]);
 
     // TODO MRB: react to users being added and removed in appState

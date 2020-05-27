@@ -56,12 +56,10 @@ export function loadLocal(): ShoutState {
     };
 
     saveLocal(initialState);
-    console.log(initialState);
-
     return initialState;
 }
 
-function reducer(state: ShoutState, action: ShoutAction): ShoutState {
+function _reducer(state: ShoutState, action: ShoutAction): ShoutState {
     switch(action.type) {
         case 'user_action':
             return { ...state, users: Users.reducer(state.users, action.action) };
@@ -69,6 +67,13 @@ function reducer(state: ShoutState, action: ShoutAction): ShoutState {
         case 'manifest_action':
             return { ...state, manifest: Manifest.reducer(state.manifest, action.action) };
     }
+}
+
+function reducer(state: ShoutState, action: ShoutAction): ShoutState {
+    const ret = _reducer(state, action);
+    saveLocal(ret);
+
+    return ret;
 }
 
 export function useShoutState(): [ShoutState, React.Dispatch<ShoutAction>] {
