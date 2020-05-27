@@ -1,5 +1,6 @@
 import * as LWWR from "./lwwr";
 import * as GMap from "./gmap";
+import { generateUsername } from "./names";
 
 type UserState = { name: LWWR.LWWR<string | undefined> };
 export type State = GMap.GMap<UserState>;
@@ -37,15 +38,14 @@ export function addSeeds(seeds: string[], state: State, localUserId: string): St
             return acc;
         }
 
-        // TODO MRB: either we prefer a value to undefined or we pass the full LWWR
-        // state through to the seeds otherwise this will overwrite everyone's usernames
+        
         return { ...acc, [seed]: {
             name: LWWR.create(localUserId, undefined, Date.now())
         } };
     }, state);
 }
 
-export function setUser(id: string, name: string, localUserId: string): SetUserAction {
+export function setUser(id: string, localUserId: string, name?: string): SetUserAction {
     return {
         type: 'set_user',
         id,
@@ -53,4 +53,29 @@ export function setUser(id: string, name: string, localUserId: string): SetUserA
             name: LWWR.create(localUserId, name, Date.now())
         }
     };
+}
+
+export function buildInitialState(localUserId: string, seeds: string[], storedState: State): State {
+    let actions = [];
+
+    if(!(localUserId in storedState)) {
+        const username = generateUsername();
+        
+        console.log("Generating username for brand new user");
+        console.log(`Welcome to the show ${username} [${localUserId}]`);
+
+        actions.push(setUser(localUserId, localUserId, generateUsername()));
+    }
+
+    for(const seed of seeds) {
+        if(!(seed in storedState)) {
+            // TODO MRB: either we prefer a value to undefined or we pass the full LWWR
+            // state through to the seeds otherwise this will overwrite everyone's usernames
+            actions.push(setUser(seed, localUserId, undefined));
+        }
+    }
+
+    return actions.reduce((state, action) =>
+        reducer(state, action)
+    , storedState);
 }

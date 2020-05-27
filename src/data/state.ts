@@ -43,22 +43,22 @@ export function loadLocal(): ShoutState {
     const seeds = seedParam === null ? [] : seedParam.split(",").map(s => s.trim());
 
     const json = localStorage.getItem('shout-db-v1');
+    const storedState: ShoutState = json ? JSON.parse(json) : base();
 
-    const beforeIteration: ShoutState = json ? JSON.parse(json) : base();
+    const initialState: ShoutState = {
+        ...storedState,
+        identity: {
+            id: storedState.identity.id,
+            // Increase the iteration. This allows the same user to have multiple tabs open
+            iteration: storedState.identity.iteration + 1
+        },
+        users: Users.buildInitialState(storedState.identity.id, seeds, storedState.users)
+    };
 
-    // Increase the iteration. This allows the same user to have multiple tabs open
-    const afterIteration: ShoutState = { ...beforeIteration, identity: {
-        id: beforeIteration.identity.id,
-        iteration: beforeIteration.identity.iteration
-    }};
+    saveLocal(initialState);
+    console.log(initialState);
 
-    // Create user stubs for seeds if they don't already exist
-    const withSeeds = {...afterIteration, users: Users.addSeeds(seeds, afterIteration.users, afterIteration.identity.id) };
-
-    saveLocal(withSeeds);
-    console.log(withSeeds);
-
-    return withSeeds;
+    return initialState;
 }
 
 function reducer(state: ShoutState, action: ShoutAction): ShoutState {

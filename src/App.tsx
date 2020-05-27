@@ -59,7 +59,7 @@ function App() {
         users={users}
         connectedPeers={peer.connections}
         updateUserMetadata={(name: string) => {
-          dispatch({ type: 'user_action', action: Users.setUser(identity.id, name, identity.id) });
+          dispatch({ type: 'user_action', action: Users.setUser(identity.id, identity.id, name) });
         }}
       />
     </Router>
