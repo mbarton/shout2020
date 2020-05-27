@@ -32,7 +32,7 @@ function base(): ShoutState {
 
 export function saveLocal(state: ShoutState) {
     const json = JSON.stringify(state);
-    localStorage.putItem('shout-db-v1', json);
+    localStorage.setItem('shout-db-v1', json);
 }
 
 export function loadLocal(): ShoutState {
@@ -53,9 +53,11 @@ export function loadLocal(): ShoutState {
     }};
 
     // Create user stubs for seeds if they don't already exist
-    const withSeeds = {...afterIteration, users: Users.addSeeds(seeds, afterIteration.users) };
+    const withSeeds = {...afterIteration, users: Users.addSeeds(seeds, afterIteration.users, afterIteration.identity.id) };
 
     saveLocal(withSeeds);
+    console.log(withSeeds);
+
     return withSeeds;
 }
 

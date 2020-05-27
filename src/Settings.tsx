@@ -2,14 +2,18 @@ import React, { useState } from 'react';
 import { RouteComponentProps } from '@reach/router';
 import { PeerConnection } from './peer';
 import { generateUsername } from './data/names';
+import { Identity } from './data/state';
+import * as Users from './data/users';
 
 type Props = RouteComponentProps & {
-    localUser: ShoutUser,
-    connectedPeers: PeerConnection[]
+    identity: Identity,
+    users: Users.State,
+    connectedPeers: { [id: string]: PeerConnection },
     updateUserMetadata: (name: string) => void
 }
 
 export default function Settings(props: Props) {
+    const localUserName = props.users[props.identity.id].name.value;
     const [newLocalUsername, setNewLocalUsername] = useState<string | undefined>(undefined);
 
     function generateNewUsername() {
@@ -28,7 +32,7 @@ export default function Settings(props: Props) {
         <form onSubmit={onSubmit}>
             <fieldset>
                 <label htmlFor="idField">ID</label>
-                <input type="text" id="idField" disabled value={props.localUser.id} />
+                <input type="text" id="idField" disabled value={props.identity.id} />
                 <label htmlFor="nameField">Name</label>
                 <div className="row">
                     <div className="column">
@@ -36,7 +40,7 @@ export default function Settings(props: Props) {
                             type="text"
                             id="nameField"
                             placeholder="Username"
-                            value={newLocalUsername || props.localUser.name}
+                            value={newLocalUsername || localUserName}
                             onChange={e => setNewLocalUsername(e.target.value)}
                         />
                     </div>
@@ -63,12 +67,16 @@ export default function Settings(props: Props) {
                 </tr>
             </thead>
             <tbody>
-                {props.connectedPeers.map(peer =>
-                    <tr key={peer.id}>
-                        <td>{peer.id}</td>
-                        <td>{new Date(peer.lastHeartbeatReceived).toLocaleString()}</td>
-                    </tr>
-                )}
+                {Object.entries(props.connectedPeers).map(([id, peer]) => {
+                    const lastHeartbeatReceived = peer.lastHeartbeatReceived
+                        ? new Date(peer.lastHeartbeatReceived).toLocaleString()
+                        : '';
+
+                    return <tr key={id}>
+                        <td>{id}</td>
+                        <td>{lastHeartbeatReceived}</td>
+                    </tr>;
+                })}
             </tbody>
         </table>
     </React.Fragment>;

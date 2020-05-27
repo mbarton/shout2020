@@ -1,11 +1,11 @@
 import React from 'react';
-import { Shout } from './db';
+
+import * as Manifest from './data/manifest';
 
 type Props = {
-    shout: Shout,
-    peerId?: string
+    shout: Manifest.Item
 }
 
-export default function ShoutUI({ shout, peerId }: Props) {
-    return <h1>{shout.name}</h1>;
+export default function ShoutUI({ shout }: Props) {
+    return <h1>{shout.name.value}</h1>;
 }

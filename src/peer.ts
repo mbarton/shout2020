@@ -1,132 +1,141 @@
 import Peer from 'peerjs';
-import { useState, useEffect } from 'react';
-import { StartupData } from './db';
+import { useState, useEffect, useReducer } from 'react';
+import { ShoutState, Identity } from './data/state';
+import * as Users from './data/users';
+
+
+const HEARBEAT_INTERVAL = 1000;
+
+type PeerMessage =
+    { type: 'heartbeat'};
 
 export type PeerConnection = {
-    id: string,
-    lastHeartbeatReceived: number
+    connection: Peer.DataConnection,
+    heartbeatIntervalHandle?: NodeJS.Timeout,
+    lastHeartbeatReceived?: number
 }
 
 export type PeerState = {
-    sessionId: string,
     connectedToBackend: boolean,
-    connectedPeers: PeerConnection[]
+    connections: { [key: string]: PeerConnection },
+    error?: any
 }
 
-type InternalPeerConnection = {
-    connection: Peer.DataConnection,
-    heartbeatIntervalHandle: NodeJS.Timeout,
-    lastHeartbeatReceived: number
+const baseState: PeerState = {
+    connectedToBackend: false,
+    connections: {}
+};
+
+type PeerAction =
+    { type: 'set_connected_to_backend', connectedToBackend: boolean } |
+    { type: 'set_connection_state', connection: PeerConnection } |
+    { type: 'update_heartbeat', connectionId: string } |
+    { type: 'set_error', error: any };
+
+function reducer(state: PeerState, action: PeerAction): PeerState {
+    switch(action.type) {
+        case 'set_connected_to_backend':
+            return { ...state, connectedToBackend: action.connectedToBackend };
+
+        case 'set_connection_state': {
+            const before = state.connections;
+            const after = { ...before, [action.connection.connection.peer]: action.connection };    
+
+            return { ...state, connections: after };
+        }
+
+        case 'update_heartbeat': {
+            const connectionBefore = state.connections[action.connectionId];
+            const connectionAfter = { ...connectionBefore, lastHeartbeatReceived: Date.now() };
+
+            const before = state.connections;
+            const after = { ...before, [action.connectionId]: connectionAfter };
+            
+            return { ...state, connections: after };
+        }
+
+        case 'set_error':
+            return { ...state, error: action.error };
+    }
 }
 
-type InternalPeerState = {
-    connectedToBackend: boolean,
-    connections: InternalPeerConnection[]
-}
+function bootUpConnection(connection: Peer.DataConnection, dispatch: React.Dispatch<PeerAction>): void {
+    connection.on('open', () => {
+        console.log(`Connected to peer ${connection.peer}`);
 
-export function usePeer(startupData: StartupData): PeerState {
-    const [peerState, setPeerState] = useState<InternalPeerState>({
-        connectedToBackend: false,
-        connections: []
+        dispatch({ type: 'set_connection_state', connection: {
+            connection,
+            heartbeatIntervalHandle: setInterval(() => {
+                connection.send(JSON.stringify({ type: 'heartbeat' }));
+            }, HEARBEAT_INTERVAL)
+        }})
     });
 
-    function onNewConnection(connection: Peer.DataConnection) {
-        connection.on('open', () => {
-            console.log("Connection established with " + connection.peer);
+    connection.on('data', (data: PeerMessage) => {
+        switch(data.type) {
+            case 'heartbeat':
+                dispatch({ type: 'update_heartbeat', connectionId: connection.peer });
+                break;
+        }
+    });
 
-            connection.on('data', (data) => {
-                switch(data.type) {
-                    case 'HEARTBEAT':
-                        setPeerState((peerState: InternalPeerState) => {
-                            const connections = peerState.connections.map(conn => {
-                                if(conn.connection.peer === connection.peer) {
-                                    return {...conn, lastHeartbeatReceived: Date.now() }
-                                }
+    connection.on('close', () => {
+        console.log(`Disconnected from peer ${connection.peer}`);
+    });
 
-                                return conn;
-                            });
+    connection.on('error', (error) => {
+        dispatch({ type: 'set_error', error });
+    });
 
-                            return {...peerState, connections};
-                        });
+    dispatch({ type: 'set_connection_state', connection: {
+        connection
+    }});
+}
 
-                        break;
+function bootUp(sessionId: string, seeds: string[], dispatch: React.Dispatch<PeerAction>) {
+    const host = 'penguin.linux.test';
+    const port = 9000;
+    const key = 'shout';
+    
+    console.log(`Connecting to PeerJS signalling server wss://${host}:${port}/${key}`);
+    
+    const peer = new Peer(sessionId, { host, port, key });
 
-                    default:
-                        console.error("Unknown message type " + data.type);
-                }
-            });
+    peer.on('open', () => {
+        dispatch({ type: 'set_connected_to_backend', connectedToBackend: true });
+    });
 
-            setPeerState((peerState: InternalPeerState) => {
-                const heartbeatIntervalHandle = setInterval(() => {
-                    connection.send({ type: 'HEARTBEAT' });
-                }, 1000);
+    peer.on('connection', (connection) => {
+        bootUpConnection(connection, dispatch);
+    });
 
-                const internalConnection = {
-                    connection,
-                    heartbeatIntervalHandle,
-                    lastHeartbeatReceived: Date.now()
-                }
+    peer.on('disconnected', () => {
+        dispatch({ type: 'set_connected_to_backend', connectedToBackend: false });
+    });
 
-                const connections = [...peerState.connections, internalConnection];
-                return { ...peerState, connections }
-            });
-        });
+    peer.on('error', (error) => {
+        dispatch({ type: 'set_error', error });
+    });
 
-        connection.on('close', () => {
-            console.log("Connection closed with " + connection.peer);
+    seeds.forEach(seed => {
+        console.log(`Connecting to seed ${seed}`);
+        
+        const connection = peer.connect(seed);
+        bootUpConnection(connection, dispatch);
+    });
+}
 
-            setPeerState((peerState: InternalPeerState) => {
-                const deadConnection = peerState.connections.find(c => c.connection.peer === connection.peer);
-                
-                if(deadConnection) {
-                    clearInterval(deadConnection.heartbeatIntervalHandle);
-                } else {
-                    console.error("Unable to find internal connection for " + connection.peer);
-                }
+export function usePeer(identity: Identity, users: Users.State): PeerState {
+    const sessionId = `${identity.id}_${identity.iteration}`;
+    const initialPeers = [...Object.keys(users)];
 
-                const connections = peerState.connections.filter(c => c.connection.peer !== connection.peer);
-                return { ...peerState, connections }
-            });
-        });
-
-        connection.on('error', err => {
-            console.error(err);
-        });
-    }
+    const [state, dispatch] = useReducer(reducer, baseState);
 
     useEffect(() => {
-        const peer = new Peer(startupData.sessionId, {
-            host: 'penguin.linux.test',
-            port: 9000,
-            key: 'shout'
-        });
+        bootUp(sessionId, initialPeers, dispatch);
+    }, [sessionId, initialPeers]);
 
-        peer.on('open', () => {
-            setPeerState((peerState: InternalPeerState) => {
-                return { ...peerState, connectedToBackend: true }
-            });
-        });
+    // TODO MRB: react to users being added and removed in appState
 
-        peer.on('connection', onNewConnection);
-
-        startupData.seeds.forEach(seedId => {
-            console.log("Establishing connection with seed " + seedId);
-
-            const conn = peer.connect(seedId);
-            onNewConnection(conn);
-        });
-    }, []);
-
-    const publicPeerState: PeerState = {
-        sessionId: startupData.sessionId,
-        connectedToBackend: peerState.connectedToBackend,
-        connectedPeers: peerState.connections.map(({ connection, lastHeartbeatReceived }) => {
-            return {
-                id: connection.peer,
-                lastHeartbeatReceived
-            };
-        })
-    };
-
-    return publicPeerState;
+    return state;
 }

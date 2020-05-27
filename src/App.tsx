@@ -10,9 +10,11 @@ import { usePeer } from './peer';
 import { useShoutState } from './data/state';
 
 import * as Manifest from './data/manifest';
+import * as Users from './data/users';
 
 function App() {
   const [{ identity, users, manifest }, dispatch] = useShoutState();
+  const peer = usePeer(identity, users);
 
   return <div className='container'>
     <div className='row'>
@@ -46,17 +48,18 @@ function App() {
       />
       <Join
         path='/join'
-        connectedToBackend={peerState.connectedToBackend}
-        peerIds={startupData.seeds}
-        connectedPeerIds={peerState.connectedPeers.map(({ id }) => id)}
+        connectedToBackend={peer.connectedToBackend}
+        peerIds={Object.keys(users)}
+        // TODO MRB: need to split this on _ to get the actual IDs?
+        connectedPeerIds={Object.keys(peer.connections)}
       />
       <Settings
         path='/settings'
-        localUser={localUser}
-        connectedPeers={peerState.connectedPeers}
+        identity={identity}
+        users={users}
+        connectedPeers={peer.connections}
         updateUserMetadata={(name: string) => {
-          saveLocalUser({ ...localUser, name });
-          setLocalUser({ ...localUser, name });
+          dispatch({ type: 'user_action', action: Users.setUser(identity.id, name, identity.id) });
         }}
       />
     </Router>
