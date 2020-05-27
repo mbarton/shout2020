@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { RouteComponentProps } from '@reach/router';
-import { ShoutUser, generateUsername } from './db';
 import { PeerConnection } from './peer';
+import { generateUsername } from './data/names';
 
 type Props = RouteComponentProps & {
     localUser: ShoutUser,
     connectedPeers: PeerConnection[]
-    setLocalUser: (user: ShoutUser) => void
+    updateUserMetadata: (name: string) => void
 }
 
 export default function Settings(props: Props) {
@@ -20,7 +20,7 @@ export default function Settings(props: Props) {
         e.preventDefault();
 
         if(newLocalUsername) {
-            props.setLocalUser({ ...props.localUser, name: newLocalUsername });
+            props.updateUserMetadata(newLocalUsername);
         }
     }
 

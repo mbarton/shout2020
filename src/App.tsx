@@ -4,18 +4,15 @@ import { Router, Link } from "@reach/router";
 import CreateShout from './CreateShout';
 import SelectShout from './SelectShout';
 import Settings from './Settings';
-import { ShoutUser, saveLocalUser, fetchShoutSummaries, saveShoutSummaries, Shout, saveShout, deleteShout, fetchStartupData } from './db';
 import ShoutLoader from './ShoutLoader';
 import Join from './Join';
 import { usePeer } from './peer';
+import { useShoutState } from './data/state';
 
-const startupData = fetchStartupData();
+import * as Manifest from './data/manifest';
 
 function App() {
-  const [localUser, setLocalUser] = useState(startupData.localUser);
-  const [shoutSummaries, setShoutSummaries] = useState(fetchShoutSummaries());
-
-  const peerState = usePeer(startupData);
+  const [{ identity, users, manifest }, dispatch] = useShoutState();
 
   return <div className='container'>
     <div className='row'>
@@ -25,41 +22,27 @@ function App() {
       <div className='column column-50'>
         <div className='float-right'>
           <Link to='/new' className='button'>Create</Link>
-          <Link to='/settings' className='button button-outline'>{localUser.name}</Link>
+          <Link to='/settings' className='button button-outline'>{users[identity.id].name?.value}</Link>
         </div>
       </div>
     </div>
     <Router>
       <SelectShout
         path='/'
-        localUser={localUser}
-        shouts={shoutSummaries}
-        connected={peerState.connectedToBackend}
-        sessionId={startupData.sessionId}
-        deleteShout={(id: string) => {
-          const updated = shoutSummaries.filter(shout => shout.id !== id);
-          
-          deleteShout(id);
-          saveShoutSummaries(updated);
-
-          setShoutSummaries(updated);
-        }}
+        manifest={manifest}
+        users={users}
+        localUserId={identity.id}
       />
       <CreateShout
         path='/new'
-        localUser={localUser}
-        existingShouts={shoutSummaries}
-        saveShout={(shout: Shout) => {
-          const updated = [...shoutSummaries, shout];
-          
-          saveShout(shout);
-          saveShoutSummaries(updated);
-
-          setShoutSummaries(updated);
+        manifest={manifest}
+        createShout={(name: string) => {
+          dispatch({ type: 'manifest_action', action: Manifest.create(name, identity.id) });
         }}
       />
       <ShoutLoader
         path='/shout/:id'
+        manifest={manifest}
       />
       <Join
         path='/join'
@@ -71,9 +54,9 @@ function App() {
         path='/settings'
         localUser={localUser}
         connectedPeers={peerState.connectedPeers}
-        setLocalUser={(user: ShoutUser) => {
-          saveLocalUser(user);
-          setLocalUser(user);
+        updateUserMetadata={(name: string) => {
+          saveLocalUser({ ...localUser, name });
+          setLocalUser({ ...localUser, name });
         }}
       />
     </Router>

@@ -1,19 +1,34 @@
 import React from 'react';
 import { RouteComponentProps, Link } from '@reach/router';
 import sortBy from 'lodash.sortby';
-import { ShoutSummary, ShoutUser } from './db';
+import * as Manifest from './data/manifest';
+import * as Users from './data/users';
 import { ShareButton } from './ShareButton';
 
 type Props = RouteComponentProps & {
-    shouts: ShoutSummary[],
-    localUser: ShoutUser,
-    sessionId: string,
-    connected: boolean,
-    deleteShout: (id: string) => void
+    manifest: Manifest.State,
+    users: Users.State,
+    localUserId: string
 }
 
+function getShoutDisplayName(itemId: string, item: Manifest.Item, localUserId: string, users: Users.State): string {
+    const createdByUserId = item.createdBy.value;
+    
+    if(createdByUserId in users) {
+        const createdBy = users[createdByUserId].name.value;
+
+        if(createdByUserId === localUserId) {
+            return item.name.value;
+        }
+
+        return `${createdBy}/${item.name.value}`;
+    }
+
+    return itemId;
+} 
+
 export default function SelectShout(props: Props) {
-    const shouts = sortBy(props.shouts, ({ createdTime }) => createdTime);
+    const shouts = sortBy(Object.entries(props.manifest), ([, { createdAt }]) => createdAt.value);
 
     return <table>
         <thead>
@@ -24,23 +39,21 @@ export default function SelectShout(props: Props) {
             </tr>
         </thead>
         <tbody>
-            {shouts.map(({ id, name, createdTime, createdBy }) => {
-                const displayName = createdBy.id !== props.localUser.id
-                    ? `${createdBy.name}/${name}`
-                    : name; 
+            {shouts.map(([id, item]) => {
+                const displayName = getShoutDisplayName(id, item, props.localUserId, props.users);
 
                 return <tr key={id}>
                     <td>
                         <Link to={`/shout/${id}`}>{displayName}</Link>
                     </td>
                     <td>
-                        {new Date(createdTime).toLocaleString()}
+                        {new Date(item.createdAt.value).toLocaleString()}
                     </td>
                     <td>
-                        <div className='float-right'>
-                            <ShareButton id={id} peerId={props.sessionId} connected={props.connected} />
-                            <button className="button" onClick={() => props.deleteShout(id)}>Delete</button>
-                        </div>
+                        {/* <div className='float-right'>
+                            <ShareButton id={shout.id} peerId={props.sessionId} connected={props.connected} />
+                            <button className="button" onClick={() => props.deleteShout(shout.id)}>Delete</button>
+                        </div> */}
                     </td>
                 </tr>;
             })}

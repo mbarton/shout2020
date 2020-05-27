@@ -1,12 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import { RouteComponentProps, useNavigate } from '@reach/router';
-import { v4 as uuidv4 } from 'uuid';
-import { generateShoutName, ShoutSummary, Shout, ShoutUser } from './db';
+import * as Manifest from './data/manifest';
+import { generateShoutName } from './data/names';
 
 type Props = RouteComponentProps & {
-    localUser: ShoutUser,
-    existingShouts: ShoutSummary[],
-    saveShout: (shout: Shout) => void
+    manifest: Manifest.State,
+    createShout: (name: string) => void
 }
 
 export default function CreateShout(props: Props) {
@@ -26,18 +25,12 @@ export default function CreateShout(props: Props) {
     function onSubmit(e: React.FormEvent) {
         e.preventDefault();
 
-        props.saveShout({
-            id: uuidv4(),
-            name,
-            createdTime: new Date().getTime(),
-            createdBy: props.localUser
-        });
-
+        props.createShout(name);
         navigate('/');
     }
 
     const nameLengthZero = name.trim().length === 0;
-    const nameAlreadyUsed = props.existingShouts.find(shout => shout.name === name) !== undefined;
+    const nameAlreadyUsed = Object.values(props.manifest).find(shout => shout.name.value === name) !== undefined;
 
     return <form onSubmit={onSubmit}>
         <fieldset>

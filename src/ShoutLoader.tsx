@@ -1,10 +1,11 @@
 import React from 'react';
 import { RouteComponentProps } from '@reach/router';
-import { fetchShoutById } from './db';
 import ShoutUI from './ShoutUI';
+import * as Manifest from './data/manifest';
 
 type Props = RouteComponentProps & {
-    id?: string
+    id?: string,
+    manifest: Manifest.State
 }
 
 export default function ShoutLoader(props: Props) {
@@ -12,7 +13,7 @@ export default function ShoutLoader(props: Props) {
         return <div>Missing ID</div>;
     }
 
-    const shout = fetchShoutById(props.id);
+    const shout = props.manifest[props.id];
 
     if(!shout) {
         return <div>4 (to the) 04 - that shout does not exist!</div>;
