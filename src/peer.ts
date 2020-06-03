@@ -1,6 +1,6 @@
 import Peer from 'peerjs';
 import { useEffect, useReducer } from 'react';
-import { Identity } from './data/state';
+import { Identity, ShoutAction } from './data/state';
 import * as Users from './data/users';
 
 
@@ -67,7 +67,7 @@ function reducer(state: PeerState, action: PeerAction): PeerState {
     }
 }
 
-function bootUpConnection(connection: Peer.DataConnection, dispatch: React.Dispatch<PeerAction>): void {
+function bootUpConnection(connection: Peer.DataConnection, dispatch: React.Dispatch<PeerAction>, dispatchInboundMessage: React.Dispatch<ShoutAction>): void {
     connection.on('open', () => {
         console.log(`Connected to peer ${connection.peer}`);
 
@@ -84,11 +84,15 @@ function bootUpConnection(connection: Peer.DataConnection, dispatch: React.Dispa
 
     connection.on('data', (data: string) => {
         const message = JSON.parse(data);
-        // console.log("Inbound message " + JSON.stringify(message));
         
         switch(message.type) {
             case 'heartbeat':
                 dispatch({ type: 'update_heartbeat', connectionId: connection.peer });
+                break;
+
+            default:
+                console.log("Inbound message " + JSON.stringify(message));
+                dispatchInboundMessage(message);
                 break;
         }
     });
@@ -108,7 +112,7 @@ function bootUpConnection(connection: Peer.DataConnection, dispatch: React.Dispa
     }});
 }
 
-function bootUp(sessionId: string, seeds: string[], dispatch: React.Dispatch<PeerAction>) {
+function bootUp(sessionId: string, seeds: string[], dispatch: React.Dispatch<PeerAction>, dispatchInboundMessage: React.Dispatch<ShoutAction>) {
     const host = 'penguin.linux.test';
     const port = 9000;
     const key = 'shout';
@@ -122,7 +126,7 @@ function bootUp(sessionId: string, seeds: string[], dispatch: React.Dispatch<Pee
     });
 
     peer.on('connection', (connection) => {
-        bootUpConnection(connection, dispatch);
+        bootUpConnection(connection, dispatch, dispatchInboundMessage);
     });
 
     peer.on('disconnected', () => {
@@ -137,11 +141,11 @@ function bootUp(sessionId: string, seeds: string[], dispatch: React.Dispatch<Pee
         console.log(`Connecting to seed ${seed}`);
         
         const connection = peer.connect(seed);
-        bootUpConnection(connection, dispatch);
+        bootUpConnection(connection, dispatch, dispatchInboundMessage);
     });
 }
 
-export function usePeer(identity: Identity, users: Users.State): PeerState {
+export function usePeer(identity: Identity, users: Users.State, dispatchLocal: React.Dispatch<ShoutAction>): [PeerState, (action: ShoutAction) => void] {
     const sessionId = `${identity.id}_${identity.iteration}`;
     const initialPeers = [...Object.keys(users)].filter(id => id !== identity.id);
 
@@ -152,10 +156,19 @@ export function usePeer(identity: Identity, users: Users.State): PeerState {
     });
 
     useEffect(() => {        
-        bootUp(sessionId, initialPeers, dispatch);
+        bootUp(sessionId, initialPeers, dispatch, dispatchLocal);
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // TODO MRB: react to users being added and removed in appState
 
-    return state;
+    function dispatchRemote(action: ShoutAction) {
+        const message = JSON.stringify(action);
+
+        Object.values(state.connections).forEach(({ connection }) => {
+            console.log(`Outbound message to ${connection.peer} - ${message}`);
+            connection.send(message);
+        });
+    }
+
+    return [state, dispatchRemote];
 }

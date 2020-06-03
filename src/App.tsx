@@ -7,14 +7,19 @@ import Settings from './Settings';
 import ShoutLoader from './ShoutLoader';
 import Join from './Join';
 import { usePeer } from './peer';
-import { useShoutState } from './data/state';
+import { useShoutState, ShoutAction } from './data/state';
 
 import * as Manifest from './data/manifest';
 import * as Users from './data/users';
 
 function App() {
-  const [{ identity, users, manifest }, dispatch] = useShoutState();
-  const peer = usePeer(identity, users);
+  const [{ identity, users, manifest }, dispatchLocal] = useShoutState();
+  const [peer, dispatchRemote] = usePeer(identity, users, dispatchLocal);
+
+  function dispatch(action: ShoutAction) {
+    dispatchLocal(action);
+    dispatchRemote(action);
+  }
 
   return <div className='container'>
     <div className='row'>
