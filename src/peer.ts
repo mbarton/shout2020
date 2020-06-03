@@ -4,7 +4,7 @@ import { Identity } from './data/state';
 import * as Users from './data/users';
 
 
-const HEARBEAT_INTERVAL = 1000;
+const HEARTBEAT_INTERVAL = 1000;
 
 type PeerMessage =
     { type: 'heartbeat'};
@@ -74,13 +74,19 @@ function bootUpConnection(connection: Peer.DataConnection, dispatch: React.Dispa
         dispatch({ type: 'set_connection_state', connection: {
             connection,
             heartbeatIntervalHandle: setInterval(() => {
-                connection.send(JSON.stringify({ type: 'heartbeat' }));
-            }, HEARBEAT_INTERVAL)
+                const message = { type: 'heartbeat' };
+                // console.log("Outbound message " + JSON.stringify(message));
+
+                connection.send(JSON.stringify(message));
+            }, HEARTBEAT_INTERVAL)
         }})
     });
 
-    connection.on('data', (data: PeerMessage) => {
-        switch(data.type) {
+    connection.on('data', (data: string) => {
+        const message = JSON.parse(data);
+        // console.log("Inbound message " + JSON.stringify(message));
+        
+        switch(message.type) {
             case 'heartbeat':
                 dispatch({ type: 'update_heartbeat', connectionId: connection.peer });
                 break;
@@ -145,10 +151,9 @@ export function usePeer(identity: Identity, users: Users.State): PeerState {
         connections: {}
     });
 
-    useEffect(() => {
-        console.log({ sessionId, initialPeers });
+    useEffect(() => {        
         bootUp(sessionId, initialPeers, dispatch);
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // TODO MRB: react to users being added and removed in appState
 
