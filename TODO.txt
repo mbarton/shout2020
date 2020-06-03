@@ -1,0 +1,10 @@
+- Lookup latest peer to connect to (search by id, find latest iteration)
+- Send initial state to peer when connected
+- Add presence to shouts, user last active etc?
+- Only route for a given shout to peer who is interested in them
+- Add step sequencer grid
+- Hook up step sequencer to tone.js to trigger sounds
+- Delete shouts, tombstone?
+- Create a sound by recording from mic
+- Synchronise sounds between peers
+- Encrypt each shout (password, PBKDF2)
