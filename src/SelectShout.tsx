@@ -53,7 +53,7 @@ export default function SelectShout(props: Props) {
                     </td>
                     <td>
                         <div className='float-right'>
-                            <ShareButton id={id} peerId={props.peer.sessionId} connected={props.peer.connectedToBackend} />
+                            <ShareButton id={id} connected={props.peer.connectedToSignalling} />
                             {/* <button className="button" onClick={() => props.deleteShout(shout.id)}>Delete</button> */}
                         </div>
                     </td>

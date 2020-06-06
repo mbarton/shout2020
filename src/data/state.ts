@@ -5,8 +5,8 @@ import * as Users from './users';
 import { useReducer } from 'react';
 
 export type Identity = {
-    id: string
-    iteration: number
+    userId: string
+    sessionId: string
 }
 
 export type ShoutState = {
@@ -22,8 +22,8 @@ export type ShoutAction =
 function base(): ShoutState {
     return {
         identity: {
-            id: uuidv4(),
-            iteration: 0
+            userId: uuidv4(),
+            sessionId: 'replaced-on-startup'
         },
         users: Users.base,
         manifest: Manifest.base
@@ -48,11 +48,10 @@ export function loadLocal(): ShoutState {
     const initialState: ShoutState = {
         ...storedState,
         identity: {
-            id: storedState.identity.id,
-            // Increase the iteration. This allows the same user to have multiple tabs open
-            iteration: storedState.identity.iteration + 1
+            ...storedState.identity,
+            sessionId: uuidv4()
         },
-        users: Users.buildInitialState(storedState.identity.id, seeds, storedState.users)
+        users: Users.buildInitialState(storedState.identity.userId, seeds, storedState.users)
     };
 
     saveLocal(initialState);

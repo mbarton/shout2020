@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RouteComponentProps } from '@reach/router';
-import { PeerConnection } from './peer';
+import { PeerState } from './peer';
 import { generateUsername } from './data/names';
 import { Identity } from './data/state';
 import * as Users from './data/users';
@@ -8,12 +8,12 @@ import * as Users from './data/users';
 type Props = RouteComponentProps & {
     identity: Identity,
     users: Users.State,
-    connectedPeers: { [id: string]: PeerConnection },
+    peer: PeerState,
     updateUserMetadata: (name: string) => void
 }
 
 export default function Settings(props: Props) {
-    const localUserName = props.users[props.identity.id].name.value;
+    const localUserName = props.users[props.identity.userId].name.value;
     const [newLocalUsername, setNewLocalUsername] = useState<string | undefined>(undefined);
 
     function generateNewUsername() {
@@ -32,7 +32,7 @@ export default function Settings(props: Props) {
         <form onSubmit={onSubmit}>
             <fieldset>
                 <label htmlFor="idField">ID</label>
-                <input type="text" id="idField" disabled value={props.identity.id} />
+                <input type="text" id="idField" disabled value={props.identity.userId} />
                 <label htmlFor="nameField">Name</label>
                 <div className="row">
                     <div className="column">
@@ -63,19 +63,15 @@ export default function Settings(props: Props) {
             <thead>
                 <tr>
                     <td>Peer ID</td>
-                    <td>Last active</td>
                 </tr>
             </thead>
             <tbody>
-                {Object.entries(props.connectedPeers).map(([id, peer]) => {
-                    const lastHeartbeatReceived = peer.lastHeartbeatReceived
-                        ? new Date(peer.lastHeartbeatReceived).toLocaleString()
-                        : '';
-
-                    return <tr key={id}>
-                        <td>{id}</td>
-                        <td>{lastHeartbeatReceived}</td>
-                    </tr>;
+                {props.peer.userConnections.flatMap(({ sessionConnections }) => {
+                    return sessionConnections.map(({ peerConnection }) => {
+                        return <tr key={peerConnection.peer}>
+                            <td>{peerConnection.peer}</td>
+                        </tr>;
+                    });
                 })}
             </tbody>
         </table>

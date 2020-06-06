@@ -5,7 +5,6 @@ import CreateShout from './CreateShout';
 import SelectShout from './SelectShout';
 import Settings from './Settings';
 import ShoutLoader from './ShoutLoader';
-import Join from './Join';
 import { usePeer } from './peer';
 import { useShoutState, ShoutAction } from './data/state';
 
@@ -14,12 +13,14 @@ import * as Users from './data/users';
 
 function App() {
   const [{ identity, users, manifest }, dispatchLocal] = useShoutState();
-  const [peer, dispatchRemote] = usePeer(identity, users, dispatchLocal);
+  const [peer, dispatchRemote] = usePeer(identity, manifest, users, dispatchLocal);
 
   function dispatch(action: ShoutAction) {
     dispatchLocal(action);
     dispatchRemote(action);
   }
+
+  const username = users[identity.userId]?.name?.value;
 
   return <div className='container'>
     <div className='row'>
@@ -29,14 +30,14 @@ function App() {
       <div className='column column-50'>
         <div className='float-right'>
           <Link to='/new' className='button'>Create</Link>
-          <Link to='/settings' className='button button-outline'>{users[identity.id].name?.value}</Link>
+          <Link to='/settings' className='button button-outline'>{username}</Link>
         </div>
       </div>
     </div>
     <Router>
       <SelectShout
         path='/'
-        localUserId={identity.id}
+        localUserId={identity.userId}
         manifest={manifest}
         users={users}
         peer={peer}
@@ -45,27 +46,20 @@ function App() {
         path='/new'
         manifest={manifest}
         createShout={(name: string) => {
-          dispatch({ type: 'manifest_action', action: Manifest.create(name, identity.id) });
+          dispatch({ type: 'manifest_action', action: Manifest.create(name, identity.userId) });
         }}
       />
       <ShoutLoader
         path='/shout/:id'
         manifest={manifest}
       />
-      <Join
-        path='/join'
-        connectedToBackend={peer.connectedToBackend}
-        peerIds={Object.keys(users)}
-        // TODO MRB: need to split this on _ to get the actual IDs?
-        connectedPeerIds={Object.keys(peer.connections)}
-      />
       <Settings
         path='/settings'
         identity={identity}
         users={users}
-        connectedPeers={peer.connections}
+        peer={peer}
         updateUserMetadata={(name: string) => {
-          dispatch({ type: 'user_action', action: Users.setUser(identity.id, identity.id, name) });
+          dispatch({ type: 'user_action', action: Users.setUser(identity.userId, identity.userId, name) });
         }}
       />
     </Router>

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import useOnClickOutside from 'use-onclickoutside';
 
-export function ShareButton({ id, peerId, connected } : { id: string, peerId: string, connected: boolean }) {
+export function ShareButton({ id, connected } : { id: string, connected: boolean }) {
     const [showCopyMessage, setShowCopyMessage] = useState(false);
     
     const ref = useRef<HTMLButtonElement>(null);
@@ -10,12 +10,10 @@ export function ShareButton({ id, peerId, connected } : { id: string, peerId: st
     const disabled = !connected || showCopyMessage;
 
     async function copyLink() {
-        if(peerId) {
-            const link = `${window.location.origin}/join?id=${id}&seed=${peerId}`;
-            await navigator.clipboard.writeText(link);
+        const link = `${window.location.origin}/join?id=${id}`;
+        await navigator.clipboard.writeText(link);
 
-            setShowCopyMessage(true);
-        }
+        setShowCopyMessage(true);
     }
 
     return <button className="button" disabled={disabled} onClick={copyLink} ref={ref}>

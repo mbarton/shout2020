@@ -1,7 +1,7 @@
-- Lookup latest peer to connect to (search by id, find latest iteration)
 - Send initial state to peer when connected
 - Add presence to shouts, user last active etc?
 - Only route for a given shout to peer who is interested in them
+  - Only send username updates to peers who are part of a shout already with that user
 - Add step sequencer grid
 - Hook up step sequencer to tone.js to trigger sounds
 - Delete shouts, tombstone?
