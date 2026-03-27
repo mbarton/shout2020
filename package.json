@@ -24,7 +24,7 @@
     "pkijs": "^2.1.88",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-scripts": "3.4.1",
+    "react-scripts": "5.0.1",
     "reset-css": "^5.0.1",
     "typeface-roboto": "0.0.75",
     "typescript": "^3.7.5",
